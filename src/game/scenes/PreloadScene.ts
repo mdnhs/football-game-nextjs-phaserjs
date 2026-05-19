@@ -54,8 +54,8 @@ export class PreloadScene extends Phaser.Scene {
       }
     });
 
-    this.load.image("bg", "/assets/images/background.png");
-    this.load.image("goal", "/assets/images/goal.png");
+    this.load.image("bg", "/assets/images/8083850_1131.jpg");
+    this.load.image("goal", "/assets/images/goalbar.png");
     this.load.svg("ball", "/assets/images/ball.svg", { width: 128, height: 128 });
     this.load.image("crowd", "/assets/images/crowd.png");
     this.load.image("net_flash", "/assets/images/net_flash.png");
@@ -74,6 +74,8 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create() {
+    this.registry.set("usePhotoStadium", !this.failedImages.has("bg"));
+    this.registry.set("useGoalbarAsset", !this.failedImages.has("goal"));
     this.generatePlaceholderTextures();
     this.makeBallTrailTexture("ball_trail");
     this.registry.set("missingAudio", this.failedAudio);
@@ -115,41 +117,263 @@ export class PreloadScene extends Phaser.Scene {
     const h = 844;
     const g = this.newGraphics();
 
-    // Sky gradient (stepped)
-    const sky = [0x040a1a, 0x081230, 0x102044, 0x1a3268, 0x2a4d8a];
-    const skyH = h * 0.55;
-    const band = skyH / sky.length;
-    sky.forEach((c, i) => {
+    const horizonY = h * 0.56;
+    const skyH = horizonY;
+    const groundY = h;
+    const grassH = groundY - horizonY;
+    const vanishX = w / 2;
+
+    // Night sky: deep broadcast blue w/ soft vertical grade.
+    const skyBands = [
+      0x030611, 0x050a18, 0x071024, 0x0b1834, 0x102247, 0x142b57, 0x193463,
+    ];
+    const band = skyH / skyBands.length;
+    skyBands.forEach((c, i) => {
       g.fillStyle(c, 1);
       g.fillRect(0, i * band, w, band + 1);
     });
 
-    // Floodlight haze
-    g.fillStyle(0xffffaa, 0.05);
-    g.fillCircle(w * 0.2, skyH * 0.3, 90);
-    g.fillCircle(w * 0.8, skyH * 0.3, 90);
-
-    // Stadium silhouette band
-    g.fillStyle(0x000814, 0.85);
-    g.fillRect(0, skyH * 0.82, w, skyH * 0.18);
-
-    // Grass — alternating mowed stripes
-    const grassA = 0x0a5e1a;
-    const grassB = 0x086018;
-    const grassH = h - skyH;
-    const stripes = 14;
-    for (let i = 0; i < stripes; i++) {
-      g.fillStyle(i % 2 === 0 ? grassA : grassB, 1);
-      g.fillRect(0, skyH + i * (grassH / stripes), w, grassH / stripes + 1);
+    for (let i = 0; i < 70; i++) {
+      const y = Math.random() * skyH * 0.7;
+      const x = Math.random() * w;
+      g.fillStyle(0xcfe4ff, 0.08 + Math.random() * 0.16);
+      g.fillCircle(x, y, 0.35 + Math.random() * 0.8);
     }
 
-    // Penalty spot
-    g.fillStyle(0xffffff, 0.95);
-    g.fillCircle(w / 2, h * 0.78, 4);
+    // Stadium bowl silhouette behind the loaded crowd texture.
+    g.fillStyle(0x02050c, 0.92);
+    g.fillPoints(
+      [
+        new Phaser.Math.Vector2(-20, skyH * 0.54),
+        new Phaser.Math.Vector2(w * 0.16, skyH * 0.36),
+        new Phaser.Math.Vector2(w * 0.5, skyH * 0.29),
+        new Phaser.Math.Vector2(w * 0.84, skyH * 0.36),
+        new Phaser.Math.Vector2(w + 20, skyH * 0.54),
+        new Phaser.Math.Vector2(w + 20, skyH),
+        new Phaser.Math.Vector2(-20, skyH),
+      ],
+      true,
+    );
 
-    // Field horizon glow
-    g.fillStyle(0x00e676, 0.06);
-    g.fillRect(0, skyH - 4, w, 8);
+    g.fillStyle(0x111b35, 0.8);
+    for (let i = 0; i < 4; i++) {
+      const y = skyH * (0.48 + i * 0.08);
+      g.fillRect(0, y, w, 2);
+      g.fillStyle(0x25385e, 0.28 - i * 0.035);
+      g.fillRect(0, y + 2, w, 18);
+      g.fillStyle(0x111b35, 0.8);
+    }
+
+    // Roof canopy and trusses.
+    g.fillStyle(0x01030a, 0.96);
+    g.fillPoints(
+      [
+        new Phaser.Math.Vector2(-24, 0),
+        new Phaser.Math.Vector2(w + 24, 0),
+        new Phaser.Math.Vector2(w * 0.86, skyH * 0.23),
+        new Phaser.Math.Vector2(w * 0.5, skyH * 0.17),
+        new Phaser.Math.Vector2(w * 0.14, skyH * 0.23),
+      ],
+      true,
+    );
+    g.lineStyle(1, 0x26395f, 0.55);
+    for (let i = 0; i < 7; i++) {
+      const x = (i / 6) * w;
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(w / 2, skyH * 0.38);
+      g.strokePath();
+    }
+    g.fillStyle(0xffffff, 0.04);
+    g.fillEllipse(w / 2, skyH * 0.17, w * 0.86, skyH * 0.18);
+
+    // Floodlight haze.
+    g.fillStyle(0xfff1b8, 0.08);
+    g.fillCircle(w * 0.1, skyH * 0.04, 92);
+    g.fillCircle(w * 0.9, skyH * 0.04, 92);
+    g.fillStyle(0xfff8d8, 0.045);
+    g.fillTriangle(w * 0.05, 0, w * 0.28, 0, w * 0.58, h);
+    g.fillTriangle(w * 0.72, 0, w * 0.95, 0, w * 0.42, h);
+
+    // Pitch foundation.
+    g.fillStyle(0x256f32, 1);
+    g.fillRect(0, horizonY, w, grassH);
+
+    // Horizontal soil/grass bands give scale before perspective stripes.
+    for (let i = 0; i < 28; i++) {
+      const t = i / 27;
+      const y = horizonY + t * grassH;
+      const a = 0.04 + t * 0.06;
+      g.fillStyle(i % 2 === 0 ? 0xb8ffc4 : 0x061609, a);
+      g.fillRect(0, y, w, 3 + t * 5);
+    }
+
+    const stripes = 9;
+    const topLeft = -w * 0.04;
+    const topRight = w * 1.04;
+    const bottomLeft = -w * 0.1;
+    const bottomRight = w * 1.1;
+    const grassColors = [
+      0x3e9444, 0x55b45b, 0x34833b, 0x63be62, 0x3a9844,
+      0x59b85c, 0x2f7d38, 0x4eaa55, 0x3b9141,
+    ];
+
+    for (let i = 0; i < stripes; i++) {
+      const t0 = i / stripes;
+      const t1 = (i + 1) / stripes;
+      const bx0 = Phaser.Math.Linear(bottomLeft, bottomRight, t0);
+      const bx1 = Phaser.Math.Linear(bottomLeft, bottomRight, t1);
+      const hx0 = Phaser.Math.Linear(topLeft, topRight, t0);
+      const hx1 = Phaser.Math.Linear(topLeft, topRight, t1);
+      g.fillStyle(grassColors[i % grassColors.length], 1);
+      g.fillPoints(
+        [
+          new Phaser.Math.Vector2(bx0, groundY),
+          new Phaser.Math.Vector2(bx1, groundY),
+          new Phaser.Math.Vector2(hx1, horizonY),
+          new Phaser.Math.Vector2(hx0, horizonY),
+        ],
+        true,
+      );
+    }
+
+    // Soft seams between wide mowing lanes, matching the reference style.
+    g.lineStyle(2, 0xd7ffd2, 0.08);
+    for (let i = 1; i < stripes; i++) {
+      const t = i / stripes;
+      const x0 = Phaser.Math.Linear(bottomLeft, bottomRight, t);
+      const x1 = Phaser.Math.Linear(topLeft, topRight, t);
+      g.beginPath();
+      g.moveTo(x0, groundY);
+      g.lineTo(x1, horizonY);
+      g.strokePath();
+    }
+    g.lineStyle(1, 0x06200d, 0.22);
+    for (let i = 0; i < 14; i++) {
+      const y = horizonY + Math.pow(i / 13, 1.45) * grassH;
+      g.beginPath();
+      g.moveTo(0, y);
+      g.lineTo(w, y + 4);
+      g.strokePath();
+    }
+
+    // Stadium light falls onto the penalty spot.
+    for (let i = 0; i < 10; i++) {
+      const t = i / 9;
+      g.fillStyle(0xd8ffd3, 0.035 * (1 - t));
+      g.fillEllipse(
+        vanishX,
+        h * 0.79,
+        w * (0.78 - t * 0.44),
+        grassH * (0.52 - t * 0.3),
+      );
+    }
+
+    // Grass blade and divot texture, denser foreground.
+    for (let i = 0; i < 1250; i++) {
+      const t = Math.pow(Math.random(), 1.65);
+      const y = horizonY + t * grassH;
+      const x = Math.random() * w;
+      const size = 0.35 + Math.random() * (0.8 + t * 1.9);
+      const r = Math.random();
+      let tint: number;
+      if (r < 0.32) tint = 0x113e1c;
+      else if (r < 0.68) tint = 0x78c879;
+      else if (r < 0.88) tint = 0x99efa0;
+      else tint = 0x061407;
+      g.fillStyle(tint, 0.22 + Math.random() * 0.42);
+      if (Math.random() < 0.72) {
+        g.fillRect(x, y, size * 0.8, Math.max(1, size * 1.7));
+      } else {
+        g.fillCircle(x, y, size);
+      }
+    }
+
+    // Edge vignette and goal-mouth shadow.
+    const sideW = w * 0.24;
+    for (let i = 0; i < sideW; i += 2) {
+      const a = (1 - i / sideW) * 0.46;
+      g.fillStyle(0x000814, a);
+      g.fillRect(i, horizonY, 2, grassH);
+      g.fillRect(w - i - 2, horizonY, 2, grassH);
+    }
+    g.fillStyle(0x02050c, 0.28);
+    g.fillEllipse(vanishX, horizonY + 8, w * 0.78, 20);
+
+    const goalLineY = horizonY;
+    const sixBoxFrontY = h * 0.675;
+    const boxFrontY = h * 0.885;
+    const spotY = h * 0.78;
+
+    const boxBackHalf = w * 0.145;
+    const boxFrontHalf = w * 0.465;
+    const sixBackHalf = w * 0.07;
+    const sixFrontHalf = w * 0.2;
+
+    const drawTrap = (
+      bh: number,
+      fh: number,
+      fy: number,
+      thickness: number,
+      alpha: number,
+      color = 0xffffff,
+    ) => {
+      g.lineStyle(thickness, color, alpha);
+      g.beginPath();
+      g.moveTo(vanishX - bh, goalLineY);
+      g.lineTo(vanishX - fh, fy);
+      g.lineTo(vanishX + fh, fy);
+      g.lineTo(vanishX + bh, goalLineY);
+      g.strokePath();
+    };
+
+    drawTrap(boxBackHalf, boxFrontHalf, boxFrontY + 3, 5, 0.35, 0x001006);
+    drawTrap(sixBackHalf, sixFrontHalf, sixBoxFrontY + 2, 4, 0.32, 0x001006);
+    drawTrap(boxBackHalf, boxFrontHalf, boxFrontY, 3.4, 0.9);
+    drawTrap(sixBackHalf, sixFrontHalf, sixBoxFrontY, 2.8, 0.78);
+    drawTrap(boxBackHalf, boxFrontHalf, boxFrontY - 1, 1, 0.25, 0xb6ffc6);
+
+    const arcRX = w * 0.14;
+    const arcRY = w * 0.05;
+    const arcSegments = 28;
+
+    g.lineStyle(4, 0x001006, 0.34);
+    g.beginPath();
+    for (let s = 0; s <= arcSegments; s++) {
+      const a = Phaser.Math.DegToRad((180 * s) / arcSegments);
+      const px = vanishX + Math.cos(a) * arcRX;
+      const py = boxFrontY + 3 + Math.sin(a) * arcRY;
+      if (s === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.strokePath();
+
+    g.lineStyle(3, 0xffffff, 0.88);
+    g.beginPath();
+    for (let s = 0; s <= arcSegments; s++) {
+      const a = Phaser.Math.DegToRad((180 * s) / arcSegments);
+      const px = vanishX + Math.cos(a) * arcRX;
+      const py = boxFrontY + Math.sin(a) * arcRY;
+      if (s === 0) g.moveTo(px, py);
+      else g.lineTo(px, py);
+    }
+    g.strokePath();
+
+    g.fillStyle(0x000814, 0.45);
+    g.fillEllipse(vanishX + 1, spotY + 2, 16, 8);
+    g.fillStyle(0xffffff, 0.95);
+    g.fillCircle(vanishX, spotY, 4.8);
+    g.lineStyle(1, 0xb6ffc6, 0.5);
+    g.strokeCircle(vanishX, spotY, 7.5);
+
+    g.fillStyle(0x000814, 0.35);
+    g.fillRect(vanishX - boxBackHalf, goalLineY, boxBackHalf * 2, 3);
+    g.fillStyle(0xffffff, 0.7);
+    g.fillRect(vanishX - boxBackHalf, goalLineY - 1, boxBackHalf * 2, 2);
+
+    g.fillStyle(0xffffff, 0.18);
+    g.fillRect(0, horizonY - 1, vanishX - boxBackHalf, 1);
+    g.fillRect(vanishX + boxBackHalf, horizonY - 1, w - vanishX - boxBackHalf, 1);
 
     this.commit(g, key, w, h);
   }
@@ -159,94 +383,139 @@ export class PreloadScene extends Phaser.Scene {
     const h = 350;
     const g = this.newGraphics();
 
-    const post = 14;
+    const post = 16;
     const fL = post;
     const fR = w - post;
     const fT = post;
-    const fB = h - 4;
+    const fB = h - 8;
 
-    // Soft dark interior so net pattern reads
-    g.fillStyle(0x0a1830, 0.35);
+    // Back net pocket and side depth.
+    g.fillStyle(0x031126, 0.62);
     g.fillRect(fL, fT, fR - fL, fB - fT);
+    g.fillStyle(0x0f2448, 0.35);
+    g.fillPoints(
+      [
+        new Phaser.Math.Vector2(fL, fT),
+        new Phaser.Math.Vector2(fL + 42, fT + 24),
+        new Phaser.Math.Vector2(fL + 42, fB - 20),
+        new Phaser.Math.Vector2(fL, fB),
+      ],
+      true,
+    );
+    g.fillPoints(
+      [
+        new Phaser.Math.Vector2(fR, fT),
+        new Phaser.Math.Vector2(fR - 42, fT + 24),
+        new Phaser.Math.Vector2(fR - 42, fB - 20),
+        new Phaser.Math.Vector2(fR, fB),
+      ],
+      true,
+    );
+    g.fillStyle(0xffffff, 0.04);
+    g.fillEllipse(w / 2, fT + 28, w * 0.72, 38);
 
-    // ── Diamond mesh net (rotated grid clipped to goal rect) ──
-    g.lineStyle(1.4, 0xffffff, 0.75);
-    const step = 18;
+    // Diamond mesh net, double-pass for crisp broadcast look.
+    g.lineStyle(2.2, 0x06101f, 0.44);
+    const step = 20;
     const innerW = fR - fL;
     const innerH = fB - fT;
-    // Diagonals going down-right (y = x + c)
-    for (let c = -innerW; c <= innerH; c += step) {
-      let x1 = fL;
-      let y1 = fT + c + (fL - fL);
-      let x2 = fR;
-      let y2 = fT + c + (fR - fL);
-      // clip to box
-      if (y1 < fT) {
-        x1 += fT - y1;
-        y1 = fT;
+    const drawNet = (color: number, alpha: number, widthLine: number) => {
+      g.lineStyle(widthLine, color, alpha);
+      for (let c = -innerW; c <= innerH; c += step) {
+        let x1 = fL;
+        let y1 = fT + c;
+        let x2 = fR;
+        let y2 = fT + c + innerW;
+        if (y1 < fT) {
+          x1 += fT - y1;
+          y1 = fT;
+        }
+        if (y2 > fB) {
+          x2 -= y2 - fB;
+          y2 = fB;
+        }
+        if (x1 < fR && x2 > fL && y1 < fB && y2 > fT) {
+          g.beginPath();
+          g.moveTo(x1, y1);
+          g.lineTo(x2, y2);
+          g.strokePath();
+        }
       }
-      if (y2 > fB) {
-        x2 -= y2 - fB;
-        y2 = fB;
+      for (let c = 0; c <= innerW + innerH; c += step) {
+        let x1 = fL;
+        let y1 = fT + c;
+        let x2 = fR;
+        let y2 = fT + c - innerW;
+        if (y1 > fB) {
+          x1 += y1 - fB;
+          y1 = fB;
+        }
+        if (y2 < fT) {
+          x2 -= fT - y2;
+          y2 = fT;
+        }
+        if (x1 < fR && x2 > fL && y1 > fT && y2 < fB) {
+          g.beginPath();
+          g.moveTo(x1, y1);
+          g.lineTo(x2, y2);
+          g.strokePath();
+        }
       }
-      if (x1 < fR && x2 > fL && y1 < fB && y2 > fT) {
-        g.beginPath();
-        g.moveTo(x1, y1);
-        g.lineTo(x2, y2);
-        g.strokePath();
-      }
-    }
-    // Diagonals going down-left (y = -x + c)
-    for (let c = 0; c <= innerW + innerH; c += step) {
-      let x1 = fL;
-      let y1 = fT + c;
-      let x2 = fR;
-      let y2 = fT + c - innerW;
-      if (y1 > fB) {
-        x1 += y1 - fB;
-        y1 = fB;
-      }
-      if (y2 < fT) {
-        x2 -= fT - y2;
-        y2 = fT;
-      }
-      if (x1 < fR && x2 > fL && y1 > fT && y2 < fB) {
-        g.beginPath();
-        g.moveTo(x1, y1);
-        g.lineTo(x2, y2);
-        g.strokePath();
-      }
-    }
+    };
 
-    // ── Frame (flat cartoon white posts + crossbar) ──
-    // Drop shadow under crossbar/posts
-    g.fillStyle(0x000000, 0.25);
-    g.fillRect(fL + 3, fT + post + 1, fR - fL, 3);
-    g.fillRect(fL + post + 1, fT + 3, 4, h - fT);
-    g.fillRect(fR - post - 5, fT + 3, 4, h - fT);
+    drawNet(0x07101f, 0.5, 2.4);
+    drawNet(0xe8f4ff, 0.78, 1.25);
 
-    // Posts
-    g.fillStyle(0xffffff, 1);
+    // Back frame depth lines.
+    g.lineStyle(4, 0x9fb3c8, 0.42);
+    g.strokeRect(fL + 42, fT + 24, innerW - 84, innerH - 44);
+    g.lineStyle(2, 0xffffff, 0.22);
+    g.beginPath();
+    g.moveTo(fL, fT);
+    g.lineTo(fL + 42, fT + 24);
+    g.moveTo(fR, fT);
+    g.lineTo(fR - 42, fT + 24);
+    g.moveTo(fL, fB);
+    g.lineTo(fL + 42, fB - 20);
+    g.moveTo(fR, fB);
+    g.lineTo(fR - 42, fB - 20);
+    g.strokePath();
+
+    // Frame: thick beveled white posts with cool shadows.
+    g.fillStyle(0x000000, 0.42);
+    g.fillRect(fL + 5, fT + post, fR - fL, 7);
+    g.fillRect(fL + post + 2, fT + 6, 7, h - fT - 10);
+    g.fillRect(fR - post - 9, fT + 6, 7, h - fT - 10);
+
+    g.fillStyle(0xf5f7fb, 1);
     g.fillRect(0, fT, post, h - fT);
     g.fillRect(w - post, fT, post, h - fT);
-    // Crossbar
     g.fillRect(0, 0, w, post);
 
-    // Outline (cartoon stroke)
-    g.lineStyle(2, 0x1a1a1a, 0.85);
+    g.fillStyle(0xffffff, 1);
+    g.fillRect(0, 0, w, 4);
+    g.fillRect(0, fT, 4, h - fT);
+    g.fillRect(w - post, fT, 4, h - fT);
+    g.fillStyle(0xc7d3df, 1);
+    g.fillRect(0, post - 4, w, 4);
+    g.fillRect(post - 4, fT, 4, h - fT);
+    g.fillRect(w - 4, fT, 4, h - fT);
+
+    g.lineStyle(2, 0x09111c, 0.85);
     g.strokeRect(0, 0, w, post);
     g.strokeRect(0, fT, post, h - fT);
     g.strokeRect(w - post, fT, post, h - fT);
 
-    // Subtle inner highlight
-    g.fillStyle(0xffffff, 0.6);
-    g.fillRect(2, fT + 2, 2, h - fT - 4);
-    g.fillRect(w - 4, fT + 2, 2, h - fT - 4);
-    g.fillRect(2, 2, w - 4, 2);
+    g.fillStyle(0xd9e2ec, 1);
+    g.fillTriangle(post, post, post + 10, post, post, post + 10);
+    g.fillTriangle(w - post, post, w - post - 10, post, w - post, post + 10);
 
-    // Ground stripe at base of goal
-    g.fillStyle(0xffffff, 0.5);
-    g.fillRect(fL, fB - 2, fR - fL, 2);
+    g.fillStyle(0x000000, 0.38);
+    g.fillEllipse(w / 2, fB + 1, w * 0.96, 16);
+    g.fillStyle(0xffffff, 0.72);
+    g.fillRect(fL, fB - 3, fR - fL, 3);
+    g.fillStyle(0x7fd29a, 0.4);
+    g.fillRect(fL, fB, fR - fL, 2);
 
     this.commit(g, key, w, h);
   }
@@ -299,27 +568,111 @@ export class PreloadScene extends Phaser.Scene {
     const h = 350;
     const g = this.newGraphics();
 
-    g.fillStyle(0x05070d, 1);
+    // Deep stadium bowl.
+    g.fillStyle(0x030612, 1);
     g.fillRect(0, 0, w, h);
 
-    // Rows of crowd dots (denser farther down)
-    const colors = [0xffcc66, 0xff6677, 0x66ccff, 0xaaffaa, 0xffffff, 0xff9933];
-    const rows = 60;
-    for (let r = 0; r < rows; r++) {
-      const y = (r / rows) * h;
-      const density = 18 + r * 0.6;
-      for (let i = 0; i < density; i++) {
-        const x = (i / density) * w + (Math.random() - 0.5) * 12;
-        const jitter = (Math.random() - 0.5) * 4;
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        g.fillStyle(color, 0.35 + Math.random() * 0.4);
-        g.fillCircle(x, y + jitter, Math.random() * 1.4 + 0.8);
+    g.fillStyle(0x000000, 0.88);
+    g.fillPoints(
+      [
+        new Phaser.Math.Vector2(0, 0),
+        new Phaser.Math.Vector2(w, 0),
+        new Phaser.Math.Vector2(w, 42),
+        new Phaser.Math.Vector2(w * 0.82, 74),
+        new Phaser.Math.Vector2(w * 0.5, 88),
+        new Phaser.Math.Vector2(w * 0.18, 74),
+        new Phaser.Math.Vector2(0, 42),
+      ],
+      true,
+    );
+
+    g.lineStyle(2, 0x2a3d63, 0.55);
+    for (let i = 0; i <= 10; i++) {
+      const x = (i / 10) * w;
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(w / 2, h * 0.58);
+      g.strokePath();
+    }
+
+    const tiers = 6;
+    const tierH = h / tiers;
+    for (let t = 0; t < tiers; t++) {
+      const y0 = t * tierH;
+      const baseAlpha = 0.22 + t * 0.09;
+      g.fillStyle(t % 2 === 0 ? 0x17213e : 0x101a34, baseAlpha);
+      g.fillRect(0, y0, w, tierH);
+
+      g.fillStyle(0x000000, 0.78);
+      g.fillRect(0, y0, w, 3);
+      g.fillStyle(0x657aa5, 0.42);
+      g.fillRect(0, y0 + 3, w, 1);
+
+      // Seat row pinstripes.
+      g.fillStyle(0x2f416c, 0.2);
+      for (let r = 0; r < 4; r++) {
+        g.fillRect(0, y0 + 12 + r * 10, w, 1);
       }
     }
 
-    // Top lighting falloff
-    g.fillStyle(0x000000, 0.45);
-    g.fillRect(0, 0, w, h * 0.25);
+    const teamColors = [
+      0xffd36a, 0xff5b6e, 0x55c7ff, 0xa7f5b0, 0xf5f7ff, 0xff8c3a,
+      0x5c6b99, 0xd24f62, 0x39a3d8, 0x23365f, 0x111827,
+    ];
+    for (let t = 0; t < tiers; t++) {
+      const y0 = t * tierH + 4;
+      const y1 = (t + 1) * tierH - 2;
+      const density = 150 + t * 58;
+      const sizeMul = 0.48 + t * 0.16;
+
+      for (let i = 0; i < density; i++) {
+        const x = Math.random() * w;
+        const y = y0 + Math.random() * (y1 - y0);
+        const c = teamColors[Math.floor(Math.random() * teamColors.length)];
+        const rowShade = 0.38 + t * 0.06;
+        g.fillStyle(c, rowShade + Math.random() * 0.35);
+        if (Math.random() < 0.65) {
+          g.fillRect(x, y, sizeMul * (1.1 + Math.random()), sizeMul * 1.6);
+        } else {
+          g.fillCircle(x, y, sizeMul * (0.8 + Math.random() * 1.3));
+        }
+      }
+    }
+
+    // Camera flashes and reflected floodlights.
+    for (let i = 0; i < 95; i++) {
+      const x = Math.random() * w;
+      const y = Math.random() * h;
+      g.fillStyle(0xfff8e0, 0.45 + Math.random() * 0.42);
+      g.fillCircle(x, y, 0.45 + Math.random() * 1.4);
+    }
+
+    // Side bowl vignette.
+    for (let i = 0; i < 70; i += 2) {
+      const a = (1 - i / 70) * 0.44;
+      g.fillStyle(0x000000, a);
+      g.fillRect(i, 0, 2, h);
+      g.fillRect(w - i - 2, 0, 2, h);
+    }
+
+    for (let i = 0; i < 16; i++) {
+      g.fillStyle(0x000000, 0.62 - i * 0.036);
+      g.fillRect(0, i * 4, w, 5);
+    }
+
+    g.fillStyle(0xfff8cc, 0.055);
+    g.fillTriangle(w * 0.06, 0, w * 0.3, 0, w * 0.56, h);
+    g.fillTriangle(w * 0.7, 0, w * 0.94, 0, w * 0.44, h);
+
+    // Front broadcast rail and shadow.
+    g.fillStyle(0x050812, 0.95);
+    g.fillRect(0, h - 24, w, 24);
+    g.fillStyle(0x7f91bd, 0.55);
+    g.fillRect(0, h - 24, w, 2);
+    g.fillStyle(0x101b35, 1);
+    g.fillRect(0, h - 16, w, 7);
+    g.fillStyle(0x9fb8e8, 0.34);
+    g.fillRect(0, h - 9, w, 1);
 
     this.commit(g, key, w, h);
   }
