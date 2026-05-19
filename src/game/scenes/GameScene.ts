@@ -5,7 +5,8 @@ import { PowerBar } from "../objects/PowerBar";
 import { TimingBar } from "../objects/TimingBar";
 import { ScoreEngine } from "../systems/ScoreEngine";
 import { DifficultyManager } from "../systems/DifficultyManager";
-import type { ShotResult } from "@/types/game";
+import { GAME } from "@/constants/game";
+import type { AimDirection, ShotResult, WindInfo } from "@/types/game";
 
 const TOTAL_SHOTS = 5;
 
@@ -23,11 +24,19 @@ export class GameScene extends Phaser.Scene {
   private totalScore = 0;
   private shotResults: ShotResult[] = [];
   private isAnimating = false;
+  private currentWind: WindInfo = { speed: 0, direction: 1 };
 
   private scoreText!: Phaser.GameObjects.Text;
   private shotsText!: Phaser.GameObjects.Text;
   private statusText!: Phaser.GameObjects.Text;
   private statusPanel!: Phaser.GameObjects.Graphics;
+  private windPanel!: Phaser.GameObjects.Graphics;
+  private windIcon!: Phaser.GameObjects.Graphics;
+  private windValueText!: Phaser.GameObjects.Text;
+  private windGusts: Phaser.GameObjects.Arc[] = [];
+  private windHud = { x: 0, y: 0, w: 0, h: 0 };
+  private swipeHint!: Phaser.GameObjects.Container;
+  private swipeHand!: Phaser.GameObjects.Container;
   private shotDots: Phaser.GameObjects.Arc[] = [];
   private toastText!: Phaser.GameObjects.Text;
   private netFlash!: Phaser.GameObjects.Image;
@@ -253,8 +262,9 @@ export class GameScene extends Phaser.Scene {
       keeperHeight,
     );
     this.ball = new Ball(this, width / 2, height * 0.78);
-    this.powerBar = new PowerBar(this, width / 2, height * 0.87);
-    this.timingBar = new TimingBar(this, width * 0.18, height * 0.76);
+    const controlY = Math.min(height * 0.925, height - 58);
+    this.powerBar = new PowerBar(this, width / 2, controlY);
+    this.timingBar = new TimingBar(this, width * 0.18, controlY - 124);
 
     // Match HUD
     const sx = 12;
@@ -403,6 +413,9 @@ export class GameScene extends Phaser.Scene {
       .setDepth(30)
       .setShadow(0, 6, "#000000", 8);
 
+    this.createWindHud(controlY);
+    this.createSwipeHint(controlY);
+
     if (this.hasAudio("crowd")) {
       this.crowdSound = this.sound.add("crowd", { loop: true, volume: 0.25 });
       this.crowdSound.play();
@@ -422,6 +435,229 @@ export class GameScene extends Phaser.Scene {
     this.ball.updateFollow();
   }
 
+  private createWindHud(controlY: number) {
+    const { width } = this.scale;
+    const w = Math.min(118, width - 24);
+    const x = width - w - 12;
+    const y = Math.max(106, controlY - 152);
+    const h = 62;
+
+    this.windHud = { x, y, w, h };
+    this.windPanel = this.add.graphics().setDepth(20);
+    this.windIcon = this.add.graphics().setDepth(21);
+
+    this.add
+      .text(x + 16, y + 9, "WIND", {
+        fontFamily: "Arial Black, system-ui, sans-serif",
+        fontSize: "15px",
+        fontStyle: "bold",
+        color: "#FFD700",
+      })
+      .setDepth(21)
+      .setShadow(0, 2, "#000814", 4);
+
+    this.windValueText = this.add
+      .text(x + 54, y + 35, "0.0 m/s", {
+        fontFamily: "Arial Black, system-ui, sans-serif",
+        fontSize: "13px",
+        fontStyle: "bold",
+        color: "#ffffff",
+      })
+      .setOrigin(0, 0.5)
+      .setDepth(21)
+      .setShadow(0, 2, "#000814", 4);
+
+    for (let i = 0; i < 4; i++) {
+      const gust = this.add
+        .circle(x + 22, y + 43, 2, 0x9fe8ff, 0)
+        .setDepth(21);
+      this.windGusts.push(gust);
+    }
+
+    this.drawWindHud();
+  }
+
+  private setWindForShot() {
+    const speed = Number(
+      Phaser.Math.FloatBetween(GAME.WIND_MIN_SPEED, GAME.WIND_MAX_SPEED).toFixed(
+        1,
+      ),
+    );
+    const direction: -1 | 1 = Math.random() < 0.5 ? -1 : 1;
+    this.currentWind = { speed, direction };
+    this.drawWindHud();
+    this.animateWindGusts();
+  }
+
+  private drawWindHud() {
+    if (!this.windPanel || !this.windIcon) return;
+    const { x, y, w, h } = this.windHud;
+    const dir = this.currentWind.direction;
+
+    this.windPanel.clear();
+    this.windPanel.fillStyle(0x000000, 0.35);
+    this.windPanel.fillRoundedRect(x + 3, y + 5, w, h, 12);
+    this.windPanel.fillStyle(0x041122, 0.9);
+    this.windPanel.fillRoundedRect(x, y, w, h, 10);
+    this.windPanel.fillStyle(0x0b2a3d, 0.78);
+    this.windPanel.fillRoundedRect(x + 2, y + 2, w - 4, 20, 8);
+    this.windPanel.lineStyle(2, 0x4aa8ff, 0.55);
+    this.windPanel.strokeRoundedRect(x, y, w, h, 10);
+    this.windPanel.lineStyle(1, 0xffffff, 0.18);
+    this.windPanel.strokeRoundedRect(x + 3, y + 3, w - 6, h - 6, 8);
+
+    this.windIcon.clear();
+    this.windIcon.lineStyle(3, 0xeaf7ff, 0.94);
+    const iconX = x + 16;
+    const iconY = y + 37;
+    for (let i = 0; i < 3; i++) {
+      const yy = iconY + i * 6;
+      const startX = dir > 0 ? iconX : iconX + 27;
+      const endX = startX + dir * (20 + i * 4);
+      this.windIcon.lineBetween(startX, yy, endX, yy);
+      this.windIcon.lineBetween(
+        endX,
+        yy,
+        endX - dir * 5,
+        yy - 4,
+      );
+      this.windIcon.lineBetween(
+        endX,
+        yy,
+        endX - dir * 5,
+        yy + 4,
+      );
+    }
+
+    this.windValueText?.setText(`${this.currentWind.speed.toFixed(1)} m/s`);
+  }
+
+  private animateWindGusts() {
+    const { x, y } = this.windHud;
+    const dir = this.currentWind.direction;
+    const startX = dir > 0 ? x + 18 : x + 50;
+    const endX = startX + dir * 44;
+
+    this.windGusts.forEach((gust, i) => {
+      this.tweens.killTweensOf(gust);
+      gust
+        .setPosition(startX, y + 39 + (i % 3) * 7)
+        .setAlpha(0.12)
+        .setScale(0.7 + i * 0.08);
+
+      this.tweens.add({
+        targets: gust,
+        x: endX,
+        alpha: { from: 0.15, to: 0.72 },
+        duration: 780 - this.currentWind.speed * 70,
+        delay: i * 140,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    });
+  }
+
+  private createSwipeHint(controlY: number) {
+    const { width } = this.scale;
+    const centerX = width / 2;
+    const labelY = controlY - 86;
+    const labelW = Math.min(width * 0.58, 240);
+    const labelX = centerX - labelW / 2 + width * 0.08;
+    const handX = centerX + 20;
+    const handY = controlY - 72;
+
+    this.swipeHint = this.add.container(0, 0).setDepth(18);
+
+    const label = this.add.graphics();
+    label.fillStyle(0x000000, 0.36);
+    label.fillRoundedRect(labelX + 3, labelY + 5, labelW, 38, 8);
+    label.fillStyle(0x071425, 0.84);
+    label.fillRoundedRect(labelX, labelY, labelW, 38, 8);
+    label.lineStyle(1.5, 0x9fd7ff, 0.24);
+    label.strokeRoundedRect(labelX, labelY, labelW, 38, 8);
+    this.swipeHint.add(label);
+
+    const text = this.add
+      .text(labelX + labelW / 2, labelY + 19, "SWIPE TO SHOOT", {
+        fontFamily: "Arial Black, system-ui, sans-serif",
+        fontSize: "15px",
+        fontStyle: "bold",
+        color: "#ffffff",
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 3, "#000814", 5);
+    this.swipeHint.add(text);
+
+    this.swipeHand = this.add.container(handX, handY);
+    const hand = this.add.graphics();
+    hand.fillStyle(0x000000, 0.34);
+    hand.fillRoundedRect(-8, -5, 30, 28, 8);
+    hand.fillRoundedRect(-3, -34, 12, 36, 6);
+    hand.fillRoundedRect(8, -24, 10, 28, 6);
+    hand.fillRoundedRect(17, -17, 9, 26, 5);
+    hand.fillPoints(
+      [
+        new Phaser.Math.Vector2(-8, 10),
+        new Phaser.Math.Vector2(-28, -4),
+        new Phaser.Math.Vector2(-20, -14),
+        new Phaser.Math.Vector2(-4, 1),
+      ],
+      true,
+    );
+    hand.fillStyle(0xffffff, 1);
+    hand.fillRoundedRect(-11, -9, 30, 28, 8);
+    hand.fillRoundedRect(-6, -38, 12, 36, 6);
+    hand.fillRoundedRect(5, -28, 10, 28, 6);
+    hand.fillRoundedRect(14, -21, 9, 26, 5);
+    hand.fillPoints(
+      [
+        new Phaser.Math.Vector2(-11, 6),
+        new Phaser.Math.Vector2(-31, -8),
+        new Phaser.Math.Vector2(-23, -18),
+        new Phaser.Math.Vector2(-7, -3),
+      ],
+      true,
+    );
+    hand.lineStyle(2, 0xe4ebf3, 0.95);
+    hand.strokeRoundedRect(-11, -9, 30, 28, 8);
+    this.swipeHand.add(hand);
+    this.swipeHand.setAngle(-20);
+    this.swipeHint.add(this.swipeHand);
+
+    this.tweens.add({
+      targets: this.swipeHand,
+      x: handX + 20,
+      y: handY - 30,
+      alpha: 0.55,
+      duration: 760,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.easeInOut",
+    });
+
+    this.swipeHint.setVisible(false);
+  }
+
+  private showSwipeHint() {
+    this.swipeHint?.setVisible(true).setAlpha(0.92);
+  }
+
+  private hideSwipeHint() {
+    this.swipeHint?.setVisible(false);
+  }
+
+  private applyWind(direction: AimDirection): AimDirection {
+    const drift =
+      this.currentWind.direction *
+      this.currentWind.speed *
+      GAME.WIND_AIM_DRIFT_PER_MPS;
+
+    return {
+      x: Phaser.Math.Clamp(direction.x + drift, -1.15, 1.15),
+      y: direction.y,
+    };
+  }
+
   private readyForShot() {
     if (this.shotsTaken >= TOTAL_SHOTS) {
       this.endMatch();
@@ -431,10 +667,12 @@ export class GameScene extends Phaser.Scene {
     this.isAnimating = false;
     this.ball.resetPosition();
     this.goalkeeper.resetPosition();
+    this.setWindForShot();
     this.powerBar.reset();
     this.timingBar.reset();
     this.powerBar.show();
     this.timingBar.show();
+    this.showSwipeHint();
 
     const remaining = TOTAL_SHOTS - this.shotsTaken;
     this.statusText.setText(
@@ -445,6 +683,7 @@ export class GameScene extends Phaser.Scene {
   private setupInput() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       if (this.isAnimating) return;
+      this.hideSwipeHint();
       this.powerBar.startCharging();
       this.timingBar.start(this.difficultyManager.getTimingBarSpeed());
       this.ball.startAiming(pointer);
@@ -464,10 +703,12 @@ export class GameScene extends Phaser.Scene {
   private shoot() {
     if (this.isAnimating) return;
     this.isAnimating = true;
+    this.hideSwipeHint();
 
     const power = this.powerBar.release();
     const timing = this.timingBar.release();
     const direction = this.ball.getAimDirection();
+    const windDirection = this.applyWind(direction);
     const difficulty = this.difficultyManager.getCurrentLevel();
 
     this.powerBar.hide();
@@ -476,11 +717,11 @@ export class GameScene extends Phaser.Scene {
     const result = this.scoreEngine.evaluate({
       power,
       timing,
-      direction,
+      direction: windDirection,
       difficulty,
     });
     this.goalkeeper.reactToShot({
-      direction,
+      direction: windDirection,
       power,
       difficulty,
       willSave: result.saved,
@@ -496,7 +737,7 @@ export class GameScene extends Phaser.Scene {
         : null;
 
     this.ball.shoot({
-      direction,
+      direction: windDirection,
       power,
       timing,
       missType,

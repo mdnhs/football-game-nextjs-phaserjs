@@ -175,8 +175,12 @@ export class Ball {
   }
 
   private targetFromAim(): { x: number; y: number } {
+    return this.targetFromDirection({ x: this.aimX, y: this.aimY });
+  }
+
+  private targetFromDirection(direction: AimDirection): { x: number; y: number } {
     const { width, height } = this.scene.scale;
-    const targetX = this.startX + this.aimX * width * GAME.AIM_CONE_RATIO;
+    const targetX = this.startX + direction.x * width * GAME.AIM_CONE_RATIO;
     const goalTopY =
       (this.scene.registry.get("goalTopY") as number | undefined) ??
       height * 0.32;
@@ -185,7 +189,7 @@ export class Ball {
       height * 0.55;
     const midY = (goalTopY + goalBottomY) / 2;
     const aimRange = (goalBottomY - goalTopY) / 2;
-    const targetY = midY + this.aimY * aimRange;
+    const targetY = midY + direction.y * aimRange;
     return { x: targetX, y: targetY };
   }
 
@@ -301,11 +305,11 @@ export class Ball {
         Phaser.Math.FloatBetween(-spread * 0.4, spread * 0.4);
       ty = height * 0.06;
     } else if (missType === "short") {
-      const target = this.targetFromAim();
+      const target = this.targetFromDirection(direction);
       tx = target.x + Phaser.Math.FloatBetween(-spread, spread);
       ty = height * (0.55 + Math.random() * 0.05);
     } else {
-      const target = this.targetFromAim();
+      const target = this.targetFromDirection(direction);
       tx = target.x + Phaser.Math.FloatBetween(-spread, spread);
       ty =
         target.y +

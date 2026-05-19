@@ -24,3 +24,8 @@ export interface AimDirection {
   x: number;
   y: number;
 }
+
+export interface WindInfo {
+  speed: number;
+  direction: -1 | 1;
+}
