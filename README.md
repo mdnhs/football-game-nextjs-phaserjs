@@ -8,8 +8,8 @@ Penalty Showdown is a high-performance, mobile-first penalty shootout game built
 
 ## 📸 Screenshots
 
-| Menu Screen | Gameplay | Result Screen |
-| :---: | :---: | :---: |
+|                    Menu Screen                     |                        Gameplay                        |                     Result Screen                      |
+| :------------------------------------------------: | :----------------------------------------------------: | :----------------------------------------------------: |
 | ![Menu](/public/assets/images/screenshot-menu.png) | ![Gameplay](/public/assets/images/screenshot-game.png) | ![Result](/public/assets/images/screenshot-result.png) |
 
 ---
@@ -17,9 +17,11 @@ Penalty Showdown is a high-performance, mobile-first penalty shootout game built
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - Node.js 20.9.0 or higher
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone <repository-url>
@@ -30,9 +32,11 @@ npm install
 ```
 
 ### Development
+
 ```bash
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) to play.
 
 ---
