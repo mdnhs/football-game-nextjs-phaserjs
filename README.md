@@ -8,9 +8,9 @@ Penalty Showdown is a high-performance, mobile-first penalty shootout game built
 
 ## 📸 Screenshots
 
-|             Menu Screen              |                 Gameplay                 |              Result Screen               |
-| :----------------------------------: | :--------------------------------------: | :--------------------------------------: |
-| ![Menu](/public/screenshot-menu.png) | ![Gameplay](/public/screenshot-game.png) | ![Result](/public/screenshot-result.png) |
+|                   Menu Screen                   |                      Gameplay                       |                    Result Screen                    |
+| :---------------------------------------------: | :-------------------------------------------------: | :-------------------------------------------------: |
+| ![Menu](/public/screenshot/screenshot-menu.png) | ![Gameplay](/public/screenshot/screenshot-game.png) | ![Result](/public/screenshot/screenshot-result.png) |
 
 ---
 
