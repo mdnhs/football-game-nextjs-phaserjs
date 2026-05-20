@@ -1,6 +1,9 @@
 import { useAuthStore } from '@/features/auth/store/auth-store';
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX ?? '/api';
+const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION ?? '/v1';
+const FULL_BASE = `${BASE_URL}${API_PREFIX}${API_VERSION}`;
 
 export class ApiError extends Error {
   status: number;
@@ -19,6 +22,31 @@ interface ApiOptions extends Omit<RequestInit, 'body'> {
   token?: string;
 }
 
+interface BackendPagination {
+  totalData: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
+
+interface BackendEnvelope<T> {
+  error: boolean;
+  message: string;
+  data: T;
+  pagination?: BackendPagination;
+  status?: number;
+}
+
+function buildUrl(path: string): string {
+  if (path.startsWith('http')) return path;
+  if (path.startsWith(`${API_PREFIX}${API_VERSION}`)) return `${BASE_URL}${path}`;
+  if (path.startsWith(API_PREFIX)) return `${FULL_BASE}${path.slice(API_PREFIX.length)}`;
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  return `${FULL_BASE}${clean}`;
+}
+
 export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
@@ -31,7 +59,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   }
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(buildUrl(path), {
     ...opts,
     headers,
     body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
@@ -42,19 +70,29 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
   }
 
   if (!res.ok) {
-    let errBody: { error?: string; details?: unknown } = {};
+    let errBody: { message?: string; error?: string | boolean; details?: unknown } = {};
     try {
       errBody = await res.json();
     } catch {
       // ignore
     }
-    throw new ApiError(errBody.error ?? `Request failed: ${res.status}`, res.status, errBody.details);
+    const msg =
+      errBody.message ?? (typeof errBody.error === 'string' ? errBody.error : `Request failed: ${res.status}`);
+    throw new ApiError(msg, res.status, errBody.details);
   }
 
   if (res.status === 204) return undefined as T;
 
-  const json = (await res.json()) as { success: boolean; data: T };
-  return json.data ?? (json as unknown as T);
+  const json = (await res.json()) as BackendEnvelope<unknown>;
+
+  // Standard envelope → unwrap .data (pagination ignored — game features don't paginate)
+  if (json && typeof json === 'object' && 'data' in json) {
+    return json.data as T;
+  }
+
+  return json as T;
 }
 
-export const apiBase = BASE;
+// Root URL — for non-versioned endpoints like /qr/{ref} and /health
+export const apiBase = BASE_URL;
+export const apiVersionedBase = FULL_BASE;

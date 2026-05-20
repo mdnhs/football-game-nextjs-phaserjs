@@ -56,7 +56,7 @@ export interface ApiClientConfig {
 }
 
 const DEFAULT_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000',
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000',
   API_PREFIX: process.env.NEXT_PUBLIC_API_PREFIX || '/api',
   API_VERSION: process.env.NEXT_PUBLIC_API_VERSION || '/v1',
   TIMEOUT: Number(process.env.NEXT_PUBLIC_API_TIMEOUT || 30000),
