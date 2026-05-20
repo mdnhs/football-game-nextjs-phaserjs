@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut, useSession } from 'next-auth/react';
 
 import { NavMain } from '@/components/layout/sidebar/navs/nav-main';
 import { NavProjects } from '@/components/layout/sidebar/navs/nav-projects';
@@ -9,7 +10,6 @@ import { NavUser } from '@/components/layout/sidebar/navs/nav-user';
 import { TeamSwitcher } from '@/components/layout/sidebar/team-switcher';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar';
 import { FlagIcon, Gamepad2Icon, LayoutDashboardIcon, QrCodeIcon, ShieldIcon, UsersIcon } from 'lucide-react';
-import { clearAdminSecret } from '@/features/admin/services/auth';
 
 const baseData = {
   teams: [
@@ -36,16 +36,17 @@ const baseData = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
   const router = useRouter();
+  const { data: session } = useSession();
 
-  function signOut() {
-    clearAdminSecret();
+  async function handleSignOut() {
+    await signOut({ redirect: false });
     router.replace('/admin-panel/login');
   }
 
   const data = {
     user: {
       name: 'Admin',
-      email: 'football operations',
+      email: session?.user?.email ?? 'football operations',
       avatar: '',
     },
     navMain: [
@@ -118,7 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={baseData.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} onLogout={signOut} />
+        <NavUser user={data.user} onLogout={handleSignOut} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

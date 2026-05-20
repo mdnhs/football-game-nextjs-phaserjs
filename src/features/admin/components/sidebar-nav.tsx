@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +17,6 @@ import {
 } from '@/components/ui/sidebar';
 import { LayoutDashboard, Users, Flag, Trophy, QrCode, Settings, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { clearAdminSecret } from '@/features/admin/services/auth';
 
 const items = [
   { href: '/admin-panel/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -31,8 +31,8 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  function signOut() {
-    clearAdminSecret();
+  async function handleSignOut() {
+    await signOut({ redirect: false });
     router.replace('/admin-panel/login');
   }
 
@@ -63,7 +63,7 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className='p-3'>
-        <Button variant='outline' onClick={signOut} className='w-full'>
+        <Button variant='outline' onClick={handleSignOut} className='w-full'>
           <LogOut className='mr-2 h-4 w-4' />
           Sign out
         </Button>

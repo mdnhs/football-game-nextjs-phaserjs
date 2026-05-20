@@ -1,18 +1,16 @@
 'use client';
-// NOTE: project uses Firebase auth. `session`/`status` is a stub — wire to a Firebase token
-// claim or custom session hook once compressed permissions are exposed client-side.
 import { useMemo } from 'react';
+import { useSession } from 'next-auth/react';
 import { createPermissionChecker, type PermissionKey, type PermissionValue } from '@/lib/permission/utils';
 
 export function usePermissions() {
-  const session: { user?: { compressedPermissions?: string } } | null = null;
-  const status: 'authenticated' | 'loading' | 'unauthenticated' | null = null;
+  const { data: session, status } = useSession();
 
   const checker = useMemo(() => {
-    const sess = session as { user?: { compressedPermissions?: string } } | null;
-    if (status !== 'authenticated' || !sess?.user?.compressedPermissions) return null;
-    return createPermissionChecker(sess.user.compressedPermissions);
-  }, []);
+    const permissions = session?.user?.compressedPermissions;
+    if (status !== 'authenticated' || !permissions) return null;
+    return createPermissionChecker(permissions);
+  }, [session?.user?.compressedPermissions, status]);
 
   const hasPermission = (permission: PermissionValue): boolean => checker?.hasPermissionByValue(permission) ?? false;
   const hasPermissionByKey = (permissionKey: PermissionKey): boolean =>

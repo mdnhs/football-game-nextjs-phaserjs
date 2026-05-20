@@ -1,26 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
 import { AppSidebar } from '@/components/layout/sidebar/app-sidebar';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage } from '@/components/ui/breadcrumb';
-import { getAdminSecret } from '@/features/admin/services/auth';
 
 export function AdminShell({ title, children }: { title: string; children: React.ReactNode }) {
   const router = useRouter();
-  const [hasSecret, setHasSecret] = useState<boolean | null>(null);
+  const { status } = useSession();
 
   useEffect(() => {
-    const secret = getAdminSecret();
-    // Hydrating client-only localStorage state — required setState in effect.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHasSecret(!!secret);
-    if (!secret) router.replace('/admin-panel/login');
-  }, [router]);
+    if (status === 'unauthenticated') router.replace('/admin-panel/login');
+  }, [router, status]);
 
-  if (hasSecret !== true) return null;
+  if (status !== 'authenticated') return null;
 
   return (
     <SidebarProvider>

@@ -1,4 +1,4 @@
-import { getAdminSecret } from './auth';
+import { getSession } from 'next-auth/react';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX ?? '/api';
@@ -47,13 +47,14 @@ function buildUrl(path: string): string {
 }
 
 export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Promise<T> {
-  const secret = getAdminSecret();
+  const session = await getSession();
+  const token = session?.user?.accessToken;
   const headers: Record<string, string> = {
     Accept: 'application/json',
     ...(opts.headers as Record<string, string> | undefined),
   };
 
-  if (secret) headers['x-admin-secret'] = secret;
+  if (token) headers.Authorization = `Bearer ${token}`;
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
   const res = await fetch(buildUrl(path), {
@@ -99,9 +100,10 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
 }
 
 export async function apiBlob(path: string): Promise<Blob> {
-  const secret = getAdminSecret();
+  const session = await getSession();
+  const token = session?.user?.accessToken;
   const res = await fetch(buildUrl(path), {
-    headers: secret ? { 'x-admin-secret': secret } : {},
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new ApiError(`Request failed: ${res.status}`, res.status);
   return res.blob();

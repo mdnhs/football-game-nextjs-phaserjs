@@ -1,6 +1,5 @@
-// Server-side permission helpers.
-// NOTE: project uses Firebase auth (not NextAuth). `getSession()` below is a stub —
-// replace with real session lookup once a session/JWT mechanism is wired up.
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/admin-session';
 import { ROUTE_PERMISSIONS } from '@/lib/permission/route-permissions';
 import {
   type CompressedPermissions,
@@ -10,14 +9,9 @@ import {
   type PermissionValue,
 } from './utils';
 
-const getSession = async (): Promise<{ user?: { compressedPermissions?: string } } | null> => {
-  // TODO: read session from cookie / Firebase admin SDK
-  return null;
-};
-
 export const getCompressedPermissionsFromSession = async (): Promise<CompressedPermissions | null> => {
   try {
-    const session = await getSession();
+    const session = await getServerSession(authOptions);
     return session?.user?.compressedPermissions || null;
   } catch {
     return null;

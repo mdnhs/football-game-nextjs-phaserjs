@@ -2,39 +2,45 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { api, ApiError } from '@/features/admin/services/api';
-import { setAdminSecret, getAdminSecret } from '@/features/admin/services/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [secret, setSecret] = useState('');
+  const { status } = useSession();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (getAdminSecret()) router.replace('/admin-panel/dashboard');
-  }, [router]);
+    if (status === 'authenticated') router.replace('/admin-panel/dashboard');
+  }, [router, status]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!secret.trim()) return;
+    if (!email.trim() || !password) return;
     setLoading(true);
-    setAdminSecret(secret.trim());
     try {
-      await api('/api/analytics/dashboard');
+      const result = await signIn('credentials', {
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error('Invalid email or password');
+        return;
+      }
+
       toast.success('Signed in');
       router.replace('/admin-panel/dashboard');
+      router.refresh();
     } catch (err) {
-      if (err instanceof ApiError && (err.status === 401 || err.status === 403)) {
-        toast.error('Invalid admin secret');
-      } else {
-        toast.error(err instanceof Error ? err.message : 'Login failed');
-      }
-      setAdminSecret('');
+      toast.error(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -45,18 +51,30 @@ export default function LoginPage() {
       <Card className='w-full max-w-sm'>
         <CardHeader>
           <CardTitle>Football Admin</CardTitle>
-          <CardDescription>Enter the admin secret to sign in.</CardDescription>
+          <CardDescription>Sign in with your admin email and password.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit} className='space-y-4'>
             <div className='space-y-2'>
-              <Label htmlFor='secret'>Admin secret</Label>
+              <Label htmlFor='email'>Email</Label>
               <Input
-                id='secret'
-                type='password'
-                value={secret}
-                onChange={(e) => setSecret(e.target.value)}
+                id='email'
+                type='email'
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete='email'
                 autoFocus
+                required
+              />
+            </div>
+            <div className='space-y-2'>
+              <Label htmlFor='password'>Password</Label>
+              <Input
+                id='password'
+                type='password'
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete='current-password'
                 required
               />
             </div>
