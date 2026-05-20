@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/gameStore";
-import Button from "@/components/ui/Button";
+import Button from "@/components/ui/game-button";
 
 export default function MenuPage() {
   const router = useRouter();

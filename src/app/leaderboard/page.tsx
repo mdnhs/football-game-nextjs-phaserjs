@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { getLeaderboard } from "@/utils/storage";
 import { useGameStore } from "@/store/gameStore";
 import LeaderboardRow from "@/components/ui/LeaderboardRow";
-import Button from "@/components/ui/Button";
+import Button from "@/components/ui/game-button";
 import type { LeaderboardEntry } from "@/types/game";
 
 type Tab = "daily" | "campaign";

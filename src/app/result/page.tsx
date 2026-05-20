@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/gameStore";
 import { saveToLeaderboard } from "@/utils/storage";
 import ShotBadge from "@/components/ui/ShotBadge";
-import Button from "@/components/ui/Button";
+import Button from "@/components/ui/game-button";
 
 export default function ResultPage() {
   const router = useRouter();
