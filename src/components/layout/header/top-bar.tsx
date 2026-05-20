@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { ChevronLeft, Home, LogOut, Trophy, User } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/store/auth-store';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/layout/theme-toggle';
 
 interface Props {
   showBack?: boolean;
@@ -63,64 +64,75 @@ export default function TopBar({ showBack, title }: Props) {
           {title && <h1 className='max-w-[12rem] truncate text-base font-black text-white'>{title}</h1>}
         </div>
 
-        <div ref={menuRef} className='relative'>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className='flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pr-3 pl-1 transition-colors hover:bg-white/10'
-            aria-expanded={open}
-            aria-haspopup='menu'
-          >
-            <span className='flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-300 to-emerald-500 text-sm font-black text-black shadow-lg shadow-green-500/20'>
-              {initial}
-            </span>
-            <span className='max-w-[9rem] truncate text-xs font-bold text-white'>{displayName}</span>
-          </button>
-
-          {open && (
-            <div
-              className='absolute top-full right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-white/10 bg-[#071225] shadow-2xl shadow-black/40'
-              role='menu'
+        <div className='flex items-center gap-2'>
+          <div className='hidden sm:block'>
+            <ThemeToggle />
+          </div>
+          <div ref={menuRef} className='relative'>
+            <button
+              onClick={() => setOpen((v) => !v)}
+              className='flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pr-3 pl-1 transition-colors hover:bg-white/10'
+              aria-expanded={open}
+              aria-haspopup='menu'
             >
-              <div className='border-b border-white/10 px-3 py-3'>
-                <p className='text-[10px] font-semibold tracking-widest text-green-300/80 uppercase'>Signed in</p>
-                <p className='mt-1 truncate text-sm font-bold text-white'>{displayName}</p>
-                <p className='truncate text-[11px] text-gray-500'>{player?.phone}</p>
+              <span className='flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-300 to-emerald-500 text-sm font-black text-black shadow-lg shadow-green-500/20'>
+                {initial}
+              </span>
+              <span className='max-w-[9rem] truncate text-xs font-bold text-white'>{displayName}</span>
+            </button>
+
+            {open && (
+              <div
+                className='absolute top-full right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-white/10 bg-[#071225] shadow-2xl shadow-black/40'
+                role='menu'
+              >
+                <div className='border-b border-white/10 px-3 py-3'>
+                  <p className='text-[10px] font-semibold tracking-widest text-green-300/80 uppercase'>Signed in</p>
+                  <p className='mt-1 truncate text-sm font-bold text-white'>{displayName}</p>
+                  <p className='truncate text-[11px] text-gray-500'>{player?.phone}</p>
+                </div>
+                <Link
+                  href='/profile'
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2.5 text-sm transition-colors',
+                    pathname === '/profile'
+                      ? 'bg-white/5 text-green-300'
+                      : 'text-gray-200 hover:bg-white/5 hover:text-white',
+                  )}
+                  role='menuitem'
+                >
+                  <User className='h-4 w-4' /> Profile
+                </Link>
+                <Link
+                  href='/leaderboard'
+                  onClick={() => setOpen(false)}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2.5 text-sm transition-colors',
+                    pathname === '/leaderboard'
+                      ? 'bg-white/5 text-green-300'
+                      : 'text-gray-200 hover:bg-white/5 hover:text-white',
+                  )}
+                  role='menuitem'
+                >
+                  <Trophy className='h-4 w-4' /> Leaderboard
+                </Link>
+                <div className='sm:hidden'>
+                  <div className='flex items-center justify-between px-3 py-2.5 text-sm text-gray-200 hover:bg-white/5'>
+                    <span className='flex items-center gap-2'>Theme</span>
+                    <ThemeToggle />
+                  </div>
+                </div>
+                <button
+                  onClick={signOut}
+                  className='flex w-full items-center gap-2 border-t border-white/10 px-3 py-2.5 text-left text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/10'
+                  role='menuitem'
+                >
+                  <LogOut className='h-4 w-4' /> Log out
+                </button>
               </div>
-              <Link
-                href='/profile'
-                onClick={() => setOpen(false)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2.5 text-sm transition-colors',
-                  pathname === '/profile'
-                    ? 'bg-white/5 text-green-300'
-                    : 'text-gray-200 hover:bg-white/5 hover:text-white',
-                )}
-                role='menuitem'
-              >
-                <User className='h-4 w-4' /> Profile
-              </Link>
-              <Link
-                href='/leaderboard'
-                onClick={() => setOpen(false)}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-2.5 text-sm transition-colors',
-                  pathname === '/leaderboard'
-                    ? 'bg-white/5 text-green-300'
-                    : 'text-gray-200 hover:bg-white/5 hover:text-white',
-                )}
-                role='menuitem'
-              >
-                <Trophy className='h-4 w-4' /> Leaderboard
-              </Link>
-              <button
-                onClick={signOut}
-                className='flex w-full items-center gap-2 border-t border-white/10 px-3 py-2.5 text-left text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/10'
-                role='menuitem'
-              >
-                <LogOut className='h-4 w-4' /> Log out
-              </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

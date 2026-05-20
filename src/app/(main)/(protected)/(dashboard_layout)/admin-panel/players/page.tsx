@@ -1,49 +1,38 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminShell } from '@/features/admin/components/admin-shell';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { api } from '@/features/admin/services/api';
 import type { Paginated, Player } from '@/features/admin/types';
-import { fmtDate } from '@/features/admin/utils/format';
 import { toast } from 'sonner';
+import { DataTable } from '@/components/ui/data-table';
+import { createColumns } from './columns';
+import { useQuery } from '@tanstack/react-query';
 
 export default function PlayersPage() {
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
   const limit = 50;
-  const [data, setData] = useState<Paginated<Player> | null>(null);
-  const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api<Paginated<Player>>(`/api/admin/players?page=${page}&limit=${limit}`);
-      setData(res);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Load failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [page]);
+  const { data, error, refetch } = useQuery({
+    queryKey: ['admin-players', page, limit],
+    queryFn: () => api<Paginated<Player>>(`/api/admin/players?page=${page}&limit=${limit}`),
+  });
 
   useEffect(() => {
-    // TODO: migrate to TanStack Query in features/admin
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+    if (error) {
+      toast.error(error instanceof Error ? error.message : 'Load failed');
+    }
+  }, [error]);
 
   async function toggleBlock(p: Player) {
     setBusyId(p.id);
     try {
       const action = p.is_blocked ? 'unblock' : 'block';
       await api(`/api/admin/players/${p.id}/${action}`, { method: 'PATCH' });
-      toast.success(`Player ${action}ed`);
-      load();
+      toast.success(`Player ${p.display_name} ${action}ed successfully`);
+      refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Action failed');
     } finally {
@@ -51,84 +40,33 @@ export default function PlayersPage() {
     }
   }
 
-  const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1;
+  const columns = createColumns(toggleBlock, busyId);
 
   return (
     <AdminShell title='Players'>
-      <Card>
-        <CardContent className='p-0'>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead className='text-right'>Plays</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className='text-right'>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && !data
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 6 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className='h-5 w-24' />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : data?.data.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell className='font-medium'>{p.display_name}</TableCell>
-                      <TableCell className='font-mono text-sm'>{p.phone}</TableCell>
-                      <TableCell className='text-right'>{p.play_count}</TableCell>
-                      <TableCell>
-                        {p.is_blocked ? (
-                          <Badge variant='destructive'>Blocked</Badge>
-                        ) : (
-                          <Badge variant='secondary'>Active</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className='text-muted-foreground text-sm'>{fmtDate(p.created_at)}</TableCell>
-                      <TableCell className='text-right'>
-                        <Button
-                          variant={p.is_blocked ? 'outline' : 'destructive'}
-                          size='sm'
-                          disabled={busyId === p.id}
-                          onClick={() => toggleBlock(p)}
-                        >
-                          {p.is_blocked ? 'Unblock' : 'Block'}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              {!loading && data?.data.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className='text-muted-foreground py-8 text-center'>
-                    No players yet.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <div className='mt-4 flex items-center justify-between text-sm'>
-        <span className='text-muted-foreground'>{data ? `${data.total} total` : ''}</span>
-        <div className='flex items-center gap-2'>
-          <Button variant='outline' size='sm' disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            Previous
-          </Button>
-          <span>
-            Page {page} / {totalPages}
-          </span>
-          <Button variant='outline' size='sm' disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-            Next
-          </Button>
+      <div className='flex flex-col gap-6'>
+        <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+          <h2 className='text-3xl font-bold tracking-tight'>Participants</h2>
+          <div className='text-muted-foreground flex items-center gap-2 text-sm'>
+            <span className='text-foreground font-medium'>{data?.total ?? 0}</span>
+            <span>players registered</span>
+          </div>
         </div>
+
+        <Card className='overflow-hidden p-0 shadow-sm'>
+          <CardHeader className='bg-muted/30 border-b px-6 py-4'>
+            <CardTitle className='text-lg'>Player Management</CardTitle>
+            <CardDescription>View and manage game participants and their status</CardDescription>
+          </CardHeader>
+          <CardContent className='p-6'>
+            <DataTable
+              columns={columns}
+              data={data?.data ?? []}
+              searchKey='display_name'
+              searchPlaceholder='Search by name...'
+            />
+          </CardContent>
+        </Card>
       </div>
     </AdminShell>
   );

@@ -5,33 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 
 import { NavMain } from '@/components/layout/sidebar/navs/nav-main';
-import { NavProjects } from '@/components/layout/sidebar/navs/nav-projects';
 import { NavUser } from '@/components/layout/sidebar/navs/nav-user';
-import { TeamSwitcher } from '@/components/layout/sidebar/team-switcher';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarRail } from '@/components/ui/sidebar';
-import { FlagIcon, Gamepad2Icon, LayoutDashboardIcon, QrCodeIcon, ShieldIcon, UsersIcon } from 'lucide-react';
-
-const baseData = {
-  teams: [
-    {
-      name: 'Football Admin',
-      logo: <ShieldIcon />,
-      plan: 'Operations',
-    },
-  ],
-  projects: [
-    {
-      name: 'Game app',
-      url: '/menu',
-      icon: <Gamepad2Icon />,
-    },
-    {
-      name: 'QR campaign',
-      url: '/admin-panel/qr',
-      icon: <QrCodeIcon />,
-    },
-  ],
-};
+import { FlagIcon, LayoutDashboardIcon, QrCodeIcon, ShieldIcon, UsersIcon } from 'lucide-react';
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
@@ -112,11 +88,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible='icon' {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={baseData.teams} />
+        <div className='flex items-center gap-2 px-4 py-2'>
+          <div className='bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg'>
+            <ShieldIcon className='h-5 w-5' />
+          </div>
+          <div className='flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden'>
+            <span className='font-semibold'>Football Admin</span>
+            <span className='text-muted-foreground text-xs'>Operations</span>
+          </div>
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavProjects projects={baseData.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} onLogout={handleSignOut} />

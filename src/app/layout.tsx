@@ -20,7 +20,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang='en' className={cn('font-sans', geist.variable)} suppressHydrationWarning>
-      <body className='overflow-hidden bg-[#000814] text-white'>
+      <body className='overflow-hidden'>
         <ProviderWrapper>{children}</ProviderWrapper>
       </body>
     </html>

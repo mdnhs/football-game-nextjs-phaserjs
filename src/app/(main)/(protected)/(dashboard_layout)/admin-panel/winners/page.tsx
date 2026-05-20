@@ -1,42 +1,34 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminShell } from '@/features/admin/components/admin-shell';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { api, apiBlob } from '@/features/admin/services/api';
 import type { DailyWinner } from '@/features/admin/types';
 import { today } from '@/features/admin/utils/format';
 import { toast } from 'sonner';
-import { Download } from 'lucide-react';
+import { Download, Trophy } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import { columns } from './columns';
+import { useQuery } from '@tanstack/react-query';
 
 export default function WinnersPage() {
   const [date, setDate] = useState(today());
-  const [winners, setWinners] = useState<DailyWinner[]>([]);
-  const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api<DailyWinner[]>(`/api/admin/winners?date=${date}`);
-      setWinners(res);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Load failed');
-    } finally {
-      setLoading(false);
-    }
-  }, [date]);
+  const { data: winners = [], error } = useQuery({
+    queryKey: ['admin-winners', date],
+    queryFn: () => api<DailyWinner[]>(`/api/admin/winners?date=${date}`),
+  });
 
   useEffect(() => {
-    // TODO: migrate to TanStack Query in features/admin
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    load();
-  }, [load]);
+    if (error) {
+      toast.error(error instanceof Error ? error.message : 'Load failed');
+    }
+  }, [error]);
 
   async function downloadCsv() {
     setDownloading(true);
@@ -57,60 +49,57 @@ export default function WinnersPage() {
 
   return (
     <AdminShell title='Winners'>
-      <div className='mb-4 flex flex-wrap items-end gap-3'>
-        <div className='space-y-1'>
-          <Label htmlFor='date'>Date</Label>
-          <Input id='date' type='date' value={date} onChange={(e) => setDate(e.target.value)} className='w-48' />
+      <div className='flex flex-col gap-6'>
+        <div className='flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between'>
+          <h2 className='text-3xl font-bold tracking-tight text-yellow-600 dark:text-yellow-400'>Hall of Fame</h2>
+          <div className='flex flex-wrap items-end gap-3'>
+            <div className='space-y-1'>
+              <Label htmlFor='date' className='text-muted-foreground text-xs tracking-wider uppercase'>
+                Selected Date
+              </Label>
+              <Input
+                id='date'
+                type='date'
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className='h-9 w-48'
+              />
+            </div>
+            <Button
+              onClick={downloadCsv}
+              disabled={downloading || !winners.length}
+              variant='outline'
+              size='sm'
+              className='h-9'
+            >
+              <Download className='mr-2 h-4 w-4' />
+              {downloading ? 'Downloading…' : 'Export CSV'}
+            </Button>
+          </div>
         </div>
-        <Button onClick={downloadCsv} disabled={downloading || !winners.length}>
-          <Download className='mr-2 h-4 w-4' />
-          {downloading ? 'Downloading…' : 'Export CSV'}
-        </Button>
-      </div>
 
-      <Card>
-        <CardContent className='p-0'>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className='w-16'>Rank</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead className='text-right'>Score</TableHead>
-                <TableHead className='text-right'>Goals</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading
-                ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <TableCell key={j}>
-                          <Skeleton className='h-5 w-24' />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : winners.map((w, i) => (
-                    <TableRow key={w.player_id}>
-                      <TableCell className='font-bold'>{i + 1}</TableCell>
-                      <TableCell className='font-medium'>{w.display_name}</TableCell>
-                      <TableCell className='font-mono text-sm'>{w.phone}</TableCell>
-                      <TableCell className='text-right font-mono'>{w.best_score}</TableCell>
-                      <TableCell className='text-right font-mono'>{w.best_goals}</TableCell>
-                    </TableRow>
-                  ))}
-              {!loading && winners.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className='text-muted-foreground py-8 text-center'>
-                    No winners for this date.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <Card className='overflow-hidden border-yellow-500/20 p-0 shadow-sm'>
+          <CardHeader className='border-b bg-yellow-500/5 px-6 py-4'>
+            <div className='flex items-center gap-3'>
+              <div className='rounded-full bg-yellow-500/10 p-2'>
+                <Trophy className='h-5 w-5 text-yellow-600 dark:text-yellow-400' />
+              </div>
+              <div>
+                <CardTitle className='text-lg'>Daily Top Performers</CardTitle>
+                <CardDescription>Official leaderboard results for {date}</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className='p-6'>
+            <DataTable
+              columns={columns}
+              data={winners}
+              searchKey='display_name'
+              searchPlaceholder='Find winner by name...'
+            />
+          </CardContent>
+        </Card>
+      </div>
     </AdminShell>
   );
 }
