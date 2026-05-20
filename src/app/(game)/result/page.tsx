@@ -1,30 +1,71 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/gameStore";
-import { saveToLeaderboard } from "@/utils/storage";
+import { useAuthStore } from "@/store/authStore";
+import { useRequireAuth } from "@/lib/use-require-auth";
+import { api, ApiError } from "@/lib/api-client";
 import ShotBadge from "@/components/ui/ShotBadge";
 import Button from "@/components/ui/game-button";
 
+type SubmitStatus = "idle" | "submitting" | "saved" | "flagged" | "error";
+
 export default function ResultPage() {
   const router = useRouter();
+  const ready = useRequireAuth();
   const { result, clearResult } = useGameStore();
+  const qrRef = useAuthStore((s) => s.qrRef);
+  const [status, setStatus] = useState<SubmitStatus>("idle");
+  const [statusMessage, setStatusMessage] = useState<string>("");
+  const submittedRef = useRef(false);
 
   useEffect(() => {
+    if (!ready) return;
     if (!result) {
       router.replace("/menu");
       return;
     }
-    saveToLeaderboard({
-      name: result.playerName,
-      score: result.totalScore,
-      date: new Date().toISOString(),
-      goalsOf5: result.shotResults.filter((s) => s.scored).length,
-    });
-  }, [result, router]);
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    setStatus("submitting");
 
-  if (!result) return null;
+    const goalsCount = result.shotResults.filter((s) => s.scored).length;
+    const perfectCount = result.shotResults.filter((s) => s.bonus).length;
+
+    (async () => {
+      try {
+        const res = await api<{ scoreId: string; flagged: boolean; reason?: string }>(
+          "/api/scores",
+          {
+            method: "POST",
+            body: {
+              totalScore: result.totalScore,
+              goals: goalsCount,
+              perfectShots: perfectCount,
+              difficulty: result.difficulty,
+              shotLog: result.shotLog,
+              ...(qrRef ? { qrRef } : {}),
+            },
+          },
+        );
+        if (res.flagged) {
+          setStatus("flagged");
+          setStatusMessage(res.reason ?? "Score under review");
+        } else {
+          setStatus("saved");
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus("error");
+        setStatusMessage(
+          err instanceof ApiError ? err.message : "Failed to save score",
+        );
+      }
+    })();
+  }, [ready, result, qrRef, router]);
+
+  if (!ready || !result) return null;
 
   const goals = result.shotResults.filter((s) => s.scored).length;
   const perfect = result.shotResults.filter((s) => s.bonus).length;
@@ -96,6 +137,23 @@ export default function ResultPage() {
             </p>
           </div>
         )}
+
+        <div className="w-full text-center text-xs">
+          {status === "submitting" && (
+            <p className="text-gray-400">Saving score…</p>
+          )}
+          {status === "saved" && (
+            <p className="text-green-400">✓ Score saved</p>
+          )}
+          {status === "flagged" && (
+            <p className="text-yellow-400">
+              ⚠ Score flagged for review{statusMessage ? `: ${statusMessage}` : ""}
+            </p>
+          )}
+          {status === "error" && (
+            <p className="text-red-400">{statusMessage}</p>
+          )}
+        </div>
 
         <div className="flex w-full flex-col gap-3">
           <Button

@@ -58,7 +58,7 @@ export default function PhaserGame() {
   return (
     <div
       ref={containerRef}
-      className="h-screen w-full bg-[#000814]"
+      className="h-screen w-full touch-none select-none bg-[#000814] [&_canvas]:mx-auto [&_canvas]:block"
       id="game-container"
     />
   );

@@ -6,7 +6,12 @@ import { TimingBar } from "../objects/TimingBar";
 import { ScoreEngine } from "../systems/ScoreEngine";
 import { DifficultyManager } from "../systems/DifficultyManager";
 import { GAME } from "@/constants/game";
-import type { AimDirection, ShotResult, WindInfo } from "@/types/game";
+import type {
+  AimDirection,
+  ShotLogEntry,
+  ShotResult,
+  WindInfo,
+} from "@/types/game";
 
 const TOTAL_SHOTS = 5;
 
@@ -23,7 +28,15 @@ export class GameScene extends Phaser.Scene {
   private shotsTaken = 0;
   private totalScore = 0;
   private shotResults: ShotResult[] = [];
+  private shotLog: ShotLogEntry[] = [];
+  private currentShotStartedAt = 0;
+  private lastShotContext: {
+    power: number;
+    timing: number;
+    directionX: number;
+  } | null = null;
   private isAnimating = false;
+  private isAiming = false;
   private currentWind: WindInfo = { speed: 0, direction: 1 };
 
   private scoreText!: Phaser.GameObjects.Text;
@@ -35,6 +48,7 @@ export class GameScene extends Phaser.Scene {
   private windValueText!: Phaser.GameObjects.Text;
   private windGusts: Phaser.GameObjects.Arc[] = [];
   private windHud = { x: 0, y: 0, w: 0, h: 0 };
+  private uiTapZones: Phaser.Geom.Rectangle[] = [];
   private swipeHint!: Phaser.GameObjects.Container;
   private swipeHand!: Phaser.GameObjects.Container;
   private shotDots: Phaser.GameObjects.Arc[] = [];
@@ -263,6 +277,15 @@ export class GameScene extends Phaser.Scene {
     );
     this.ball = new Ball(this, width / 2, height * 0.78);
     const controlY = Math.min(height * 0.925, height - 58);
+
+    const controlDock = this.add.graphics().setDepth(8);
+    controlDock.fillStyle(0x000814, 0.62);
+    controlDock.fillRoundedRect(-18, controlY - 78, width + 36, 138, 34);
+    controlDock.lineStyle(1, 0xffffff, 0.1);
+    controlDock.strokeRoundedRect(-18, controlY - 78, width + 36, 138, 34);
+    controlDock.fillStyle(0xffffff, 0.06);
+    controlDock.fillRoundedRect(width * 0.25, controlY - 70, width * 0.5, 2, 1);
+
     this.powerBar = new PowerBar(this, width / 2, controlY);
     this.timingBar = new TimingBar(this, width * 0.18, controlY - 124);
 
@@ -271,6 +294,7 @@ export class GameScene extends Phaser.Scene {
     const sy = 12;
     const sw = Math.min(154, (width - 34) / 2);
     const sh = 58;
+    this.uiTapZones.push(new Phaser.Geom.Rectangle(sx - 8, sy - 8, sw + 16, sh + 18));
     const scorePanel = this.add.graphics().setDepth(19);
     scorePanel.fillStyle(0x000000, 0.38);
     scorePanel.fillRoundedRect(sx + 3, sy + 5, sw, sh, 15);
@@ -319,6 +343,7 @@ export class GameScene extends Phaser.Scene {
     const ph = sh;
     const pxl = width - 12 - pw;
     const py = 12;
+    this.uiTapZones.push(new Phaser.Geom.Rectangle(pxl - 8, py - 8, pw + 16, ph + 18));
     const shotPanel = this.add.graphics().setDepth(19);
     shotPanel.fillStyle(0x000000, 0.38);
     shotPanel.fillRoundedRect(pxl + 3, py + 5, pw, ph, 15);
@@ -415,6 +440,7 @@ export class GameScene extends Phaser.Scene {
 
     this.createWindHud(controlY);
     this.createSwipeHint(controlY);
+    this.createExitChip(controlY);
 
     if (this.hasAudio("crowd")) {
       this.crowdSound = this.sound.add("crowd", { loop: true, volume: 0.25 });
@@ -443,6 +469,7 @@ export class GameScene extends Phaser.Scene {
     const h = 62;
 
     this.windHud = { x, y, w, h };
+    this.uiTapZones.push(new Phaser.Geom.Rectangle(x - 8, y - 8, w + 16, h + 16));
     this.windPanel = this.add.graphics().setDepth(20);
     this.windIcon = this.add.graphics().setDepth(21);
 
@@ -638,12 +665,76 @@ export class GameScene extends Phaser.Scene {
     this.swipeHint.setVisible(false);
   }
 
+  private createExitChip(controlY: number) {
+    const x = 14;
+    const y = Math.max(112, controlY - 112);
+    const w = 78;
+    const h = 34;
+    const router = this.registry.get("router");
+
+    this.uiTapZones.push(new Phaser.Geom.Rectangle(x - 8, y - 8, w + 16, h + 16));
+
+    const chip = this.add.container(x, y).setDepth(28);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.34);
+    bg.fillRoundedRect(3, 4, w, h, 17);
+    bg.fillStyle(0x071425, 0.9);
+    bg.fillRoundedRect(0, 0, w, h, 17);
+    bg.lineStyle(1.5, 0xffffff, 0.16);
+    bg.strokeRoundedRect(0, 0, w, h, 17);
+    bg.fillStyle(0xffffff, 0.08);
+    bg.fillCircle(17, 17, 11);
+    chip.add(bg);
+
+    const icon = this.add.text(17, 17, "‹", {
+      fontFamily: "Arial Black, system-ui, sans-serif",
+      fontSize: "24px",
+      fontStyle: "bold",
+      color: "#ffffff",
+    });
+    icon.setOrigin(0.5);
+    chip.add(icon);
+
+    const label = this.add.text(43, 17, "MENU", {
+      fontFamily: "Arial Black, system-ui, sans-serif",
+      fontSize: "10px",
+      fontStyle: "bold",
+      color: "#dceeff",
+    });
+    label.setOrigin(0.5);
+    chip.add(label);
+
+    chip
+      .setSize(w, h)
+      .setInteractive(
+        new Phaser.Geom.Rectangle(0, 0, w, h),
+        Phaser.Geom.Rectangle.Contains,
+      )
+      .on("pointerdown", () => {
+        chip.setScale(0.96);
+      })
+      .on("pointerout", () => {
+        chip.setScale(1);
+      })
+      .on("pointerup", () => {
+        chip.setScale(1);
+        this.crowdSound?.stop();
+        router?.push?.("/menu");
+      });
+  }
+
   private showSwipeHint() {
     this.swipeHint?.setVisible(true).setAlpha(0.92);
   }
 
   private hideSwipeHint() {
     this.swipeHint?.setVisible(false);
+  }
+
+  private isUiPointer(pointer: Phaser.Input.Pointer): boolean {
+    return this.uiTapZones.some((zone) =>
+      Phaser.Geom.Rectangle.Contains(zone, pointer.worldX, pointer.worldY),
+    );
   }
 
   private applyWind(direction: AimDirection): AimDirection {
@@ -665,6 +756,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.isAnimating = false;
+    this.isAiming = false;
     this.ball.resetPosition();
     this.goalkeeper.resetPosition();
     this.setWindForShot();
@@ -673,6 +765,7 @@ export class GameScene extends Phaser.Scene {
     this.powerBar.show();
     this.timingBar.show();
     this.showSwipeHint();
+    this.currentShotStartedAt = this.time.now;
 
     const remaining = TOTAL_SHOTS - this.shotsTaken;
     this.statusText.setText(
@@ -682,7 +775,8 @@ export class GameScene extends Phaser.Scene {
 
   private setupInput() {
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (this.isAnimating) return;
+      if (this.isAnimating || this.isUiPointer(pointer)) return;
+      this.isAiming = true;
       this.hideSwipeHint();
       this.powerBar.startCharging();
       this.timingBar.start(this.difficultyManager.getTimingBarSpeed());
@@ -690,12 +784,12 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
-      if (this.isAnimating) return;
+      if (this.isAnimating || !this.isAiming) return;
       this.ball.updateAim(pointer);
     });
 
     this.input.on("pointerup", () => {
-      if (this.isAnimating) return;
+      if (this.isAnimating || !this.isAiming) return;
       this.shoot();
     });
   }
@@ -703,6 +797,7 @@ export class GameScene extends Phaser.Scene {
   private shoot() {
     if (this.isAnimating) return;
     this.isAnimating = true;
+    this.isAiming = false;
     this.hideSwipeHint();
 
     const power = this.powerBar.release();
@@ -710,6 +805,12 @@ export class GameScene extends Phaser.Scene {
     const direction = this.ball.getAimDirection();
     const windDirection = this.applyWind(direction);
     const difficulty = this.difficultyManager.getCurrentLevel();
+
+    this.lastShotContext = {
+      power,
+      timing,
+      directionX: windDirection.x,
+    };
 
     this.powerBar.hide();
     this.timingBar.hide();
@@ -751,6 +852,29 @@ export class GameScene extends Phaser.Scene {
     this.shotsTaken++;
     this.totalScore += result.points;
     this.shotResults.push(result);
+
+    const ctx = this.lastShotContext;
+    if (ctx) {
+      const durationMs = Math.max(
+        500,
+        Math.round(this.time.now - this.currentShotStartedAt),
+      );
+      const shotResultKind: "goal" | "saved" | "miss" = result.scored
+        ? "goal"
+        : result.saved
+          ? "saved"
+          : "miss";
+      this.shotLog.push({
+        shotIndex: this.shotsTaken - 1,
+        power: Math.max(0, Math.min(1, ctx.power)),
+        timing: Math.max(0, Math.min(1, ctx.timing)),
+        directionX: Math.max(-1, Math.min(1, ctx.directionX)),
+        result: shotResultKind,
+        points: Math.max(0, Math.min(200, result.points)),
+        durationMs: Math.min(30000, durationMs),
+      });
+      this.lastShotContext = null;
+    }
 
     this.scoreText.setText(`${this.totalScore}`);
     this.shotsText.setText(`${this.shotsTaken}/${TOTAL_SHOTS}`);
@@ -1015,6 +1139,8 @@ export class GameScene extends Phaser.Scene {
       playerName: this.registry.get("playerName"),
       totalScore: this.totalScore,
       shotResults: this.shotResults,
+      shotLog: this.shotLog,
+      difficulty: this.difficultyManager.getCurrentLevel(),
     });
 
     this.time.delayedCall(1200, () => {

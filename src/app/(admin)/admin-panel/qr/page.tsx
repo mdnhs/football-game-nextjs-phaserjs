@@ -227,6 +227,7 @@ export default function QrPage() {
                         </Button>
                         <Button
                           render={<Link href={`/admin-panel/qr/${q.id}`} />}
+                          nativeButton={false}
                           variant="outline"
                           size="sm"
                         >

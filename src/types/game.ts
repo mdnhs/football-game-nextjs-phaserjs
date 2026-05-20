@@ -6,14 +6,27 @@ export interface ShotResult {
   reason: string;
 }
 
+export interface ShotLogEntry {
+  shotIndex: number;
+  power: number;
+  timing: number;
+  directionX: number;
+  result: "goal" | "saved" | "miss";
+  points: number;
+  durationMs: number;
+}
+
 export interface MatchResult {
   playerName: string;
   totalScore: number;
   shotResults: ShotResult[];
+  shotLog: ShotLogEntry[];
+  difficulty: number;
   timestamp?: string;
 }
 
 export interface LeaderboardEntry {
+  playerId?: string;
   name: string;
   score: number;
   date: string;
