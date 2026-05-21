@@ -375,7 +375,7 @@ function CreateAdminDialog({
           </div>
           <div className='space-y-2'>
             <Label htmlFor='new-role'>Role</Label>
-            <Select value={roleId} onValueChange={setRoleId}>
+            <Select value={roleId} onValueChange={(v) => setRoleId(v ?? '')}>
               <SelectTrigger id='new-role' className='w-full'>
                 <SelectValue placeholder='Select a role'>
                   {(value) => {
@@ -471,7 +471,7 @@ function EditAdminDialog({
           </div>
           <div className='space-y-2'>
             <Label htmlFor='edit-role'>Role</Label>
-            <Select value={roleId} onValueChange={setRoleId}>
+            <Select value={roleId} onValueChange={(v) => setRoleId(v ?? '')}>
               <SelectTrigger id='edit-role' className='w-full'>
                 <SelectValue placeholder='Select role'>
                   {(value) => {
