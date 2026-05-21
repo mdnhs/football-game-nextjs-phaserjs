@@ -9,6 +9,7 @@ import { ShieldAlert, ShieldCheck, UserMinus, UserPlus, MoreHorizontal } from 'l
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -73,28 +74,30 @@ export const createColumns = (toggleBlock: (p: Player) => void, busyId: string |
               }
             />
             <DropdownMenuContent align='end'>
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(player.phone)}>
-                Copy phone number
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={busyId === player.id}
-                onClick={() => toggleBlock(player)}
-                className={isBlocked ? 'text-green-600' : 'text-destructive'}
-              >
-                {isBlocked ? (
-                  <>
-                    <UserPlus className='mr-2 h-4 w-4' />
-                    Unblock Player
-                  </>
-                ) : (
-                  <>
-                    <UserMinus className='mr-2 h-4 w-4' />
-                    Block Player
-                  </>
-                )}
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(player.phone)}>
+                  Copy phone number
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={busyId === player.id}
+                  onClick={() => toggleBlock(player)}
+                  className={isBlocked ? 'text-green-600' : 'text-destructive'}
+                >
+                  {isBlocked ? (
+                    <>
+                      <UserPlus className='mr-2 h-4 w-4' />
+                      Unblock Player
+                    </>
+                  ) : (
+                    <>
+                      <UserMinus className='mr-2 h-4 w-4' />
+                      Block Player
+                    </>
+                  )}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -35,7 +35,7 @@ export default function QrStatsPage({ params }: { params: Promise<{ id: string }
   return (
     <AdminShell title='QR Stats'>
       <div className='mb-4'>
-        <Button render={<Link href='/admin-panel/qr' />} nativeButton={false} variant='ghost' size='sm'>
+        <Button render={<Link href='/admin/qr' />} nativeButton={false} variant='ghost' size='sm'>
           <ArrowLeft className='mr-2 h-4 w-4' />
           Back
         </Button>

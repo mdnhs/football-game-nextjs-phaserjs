@@ -1,9 +1,22 @@
-import { getSession } from 'next-auth/react';
+import { getSession, signOut } from 'next-auth/react';
+import { toast } from 'sonner';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 const API_PREFIX = process.env.NEXT_PUBLIC_API_PREFIX ?? '/api';
 const API_VERSION = process.env.NEXT_PUBLIC_API_VERSION ?? '/v1';
 const FULL_BASE = `${BASE_URL}${API_PREFIX}${API_VERSION}`;
+
+let signingOut = false;
+async function handleAdminUnauthorized() {
+  if (signingOut) return;
+  signingOut = true;
+  try {
+    toast.error('Session expired. Please sign in again.');
+  } catch {
+    // toast may be unavailable outside UI
+  }
+  await signOut({ callbackUrl: '/admin/login' });
+}
 
 export class ApiError extends Error {
   status: number;
@@ -72,6 +85,7 @@ export async function api<T = unknown>(path: string, opts: ApiOptions = {}): Pro
     }
     const msg =
       errBody.message ?? (typeof errBody.error === 'string' ? errBody.error : `Request failed: ${res.status}`);
+    if (res.status === 401) await handleAdminUnauthorized();
     throw new ApiError(msg, res.status, errBody.details);
   }
 
@@ -105,7 +119,10 @@ export async function apiBlob(path: string): Promise<Blob> {
   const res = await fetch(buildUrl(path), {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!res.ok) throw new ApiError(`Request failed: ${res.status}`, res.status);
+  if (!res.ok) {
+    if (res.status === 401) await handleAdminUnauthorized();
+    throw new ApiError(`Request failed: ${res.status}`, res.status);
+  }
   return res.blob();
 }
 

@@ -19,12 +19,12 @@ import { LayoutDashboard, Users, Flag, Trophy, QrCode, Settings, LogOut } from '
 import { Button } from '@/components/ui/button';
 
 const items = [
-  { href: '/admin-panel/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin-panel/players', label: 'Players', icon: Users },
-  { href: '/admin-panel/scores/flagged', label: 'Flagged Scores', icon: Flag },
-  { href: '/admin-panel/winners', label: 'Winners', icon: Trophy },
-  { href: '/admin-panel/qr', label: 'QR Codes', icon: QrCode },
-  { href: '/admin-panel/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/players', label: 'Players', icon: Users },
+  { href: '/admin/scores/flagged', label: 'Flagged Scores', icon: Flag },
+  { href: '/admin/winners', label: 'Winners', icon: Trophy },
+  { href: '/admin/qr', label: 'QR Codes', icon: QrCode },
+  { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];
 
 export function AdminSidebar() {
@@ -33,7 +33,7 @@ export function AdminSidebar() {
 
   async function handleSignOut() {
     await signOut({ redirect: false });
-    router.replace('/admin-panel/login');
+    router.replace('/admin/login');
   }
 
   return (
@@ -48,7 +48,7 @@ export function AdminSidebar() {
             <SidebarMenu>
               {items.map((item) => {
                 const active =
-                  pathname === item.href || (item.href !== '/admin-panel/dashboard' && pathname.startsWith(item.href));
+                  pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href));
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton render={<Link href={item.href} />} isActive={active}>

@@ -68,3 +68,49 @@ export interface DashboardStats {
 }
 
 export type ScoreDistribution = Record<string, number>;
+
+// ── RBAC ────────────────────────────────────────────────────
+export interface Role {
+  id: string;
+  name: string;
+  description: string | null;
+  permissions: string[];
+  is_system_role: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  role: string;
+  role_id: string;
+  is_active: boolean;
+  last_login_at: string | null;
+  created_at: string;
+}
+
+// ── Ads ─────────────────────────────────────────────────────
+export interface AdSlide {
+  url: string;
+  caption?: string;
+  clickUrl?: string;
+}
+
+export type AdKind = 'single' | 'carousel';
+export type AdMediaType = 'image' | 'video';
+
+export interface Ad {
+  id: string;
+  title: string;
+  kind: AdKind;
+  media_type: AdMediaType | null;
+  media_url: string | null;
+  click_url: string | null;
+  caption: string | null;
+  slides: AdSlide[];
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+}

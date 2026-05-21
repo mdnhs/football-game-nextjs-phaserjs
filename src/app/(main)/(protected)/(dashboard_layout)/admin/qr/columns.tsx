@@ -10,6 +10,7 @@ import Link from 'next/link';
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -87,23 +88,25 @@ export const createColumns = (
               }
             />
             <DropdownMenuContent align='end'>
-              <DropdownMenuLabel>Campaign Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                render={
-                  <Link href={`/admin-panel/qr/${q.id}`} className='flex items-center'>
-                    <BarChart3 className='mr-2 h-4 w-4' />
-                    View Analytics
-                  </Link>
-                }
-              />
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                disabled={busyId === q.id}
-                onClick={() => toggleActive(q)}
-                className={q.is_active ? 'text-destructive' : 'text-green-600'}
-              >
-                {q.is_active ? 'Deactivate QR' : 'Activate QR'}
-              </DropdownMenuItem>
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Campaign Actions</DropdownMenuLabel>
+                <DropdownMenuItem
+                  render={
+                    <Link href={`/admin/qr/${q.id}`} className='flex items-center'>
+                      <BarChart3 className='mr-2 h-4 w-4' />
+                      View Analytics
+                    </Link>
+                  }
+                />
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  disabled={busyId === q.id}
+                  onClick={() => toggleActive(q)}
+                  className={q.is_active ? 'text-destructive' : 'text-green-600'}
+                >
+                  {q.is_active ? 'Deactivate QR' : 'Activate QR'}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
